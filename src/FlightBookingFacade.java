@@ -1,27 +1,16 @@
 public class FlightBookingFacade
 {
     private final SeatInventorySystem seatInventorySystem;
-    private PaymentProcessor paymentProcessor;
-    private BaggagePricingEngine baggagePricingEngine;
-    private TicketIssuer ticketIssuer;
-    private CurrencyConverter currencyConverter;
-    public SeatInventorySystem SeatInventorySystem{
-        this.seatInventorySystem =  new SeatInventorySystem();
-    }
-
-    public PaymentProcessor PaymentProcessor{
-        this.paymentProcessor = new PaymentProcessor();
-    }
-    public BaggagePricingEngine BaggagePricingEngine{
-        this.baggagePricingEngine = new BaggagePricingEngine();
-}
-
-    public TicketIssuer TicketIssuer{
-        this.ticketIssuer = new TicketIssuer();
-    }
-
-    public CurrencyConverter CurrencyConverter() {
+    private final PaymentProcessor paymentProcessor;
+    private final BaggagePricingEngine baggagePricingEngine;
+    private final TicketIssuer ticketIssuer;
+    private final CurrencyConverter currencyConverter;
+    public FlightBookingFacade(){
+        this.seatInventorySystem  = new SeatInventorySystem();
         this.currencyConverter = new CurrencyConverter();
+        this.paymentProcessor = new PaymentProcessor();
+        this.ticketIssuer = new TicketIssuer();
+        this.baggagePricingEngine = new BaggagePricingEngine();
     }
     public String bookFlight(String passengerName,
                              String flightCode,
@@ -30,7 +19,16 @@ public class FlightBookingFacade
                              int bagCount,
                              double bagWeightKg,
                              String currency,
-                             String cardNumber)  {
+                             String cardNumber){
+        String lockToken = null;
+         try {
+             seatInventorySystem.connectToReservationServer();
+             lockToken = seatInventorySystem.lockSeat(flightCode,seatNumber,passengerName);
+             double totalUSD = baggagePricingEngine.calculateBaggageFeeUSD(bagCount,bagWeightKg);
+             double convertTotal = currencyConverter.convertFromUSD(totalUSD,currency);
+             paymentProcessor.initializeGateway();
+             paymentProcessor.chargeCard(cardNumber,convertTotal,currency);
+         }
 
     }
 }
